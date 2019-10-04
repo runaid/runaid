@@ -26,7 +26,8 @@ val app = project.settings(
     "org.flywaydb" % "flyway-core" % FlywayVersion,
     "org.tpolecat" %% "doobie-core" % DoobieVersion,
     "org.tpolecat" %% "doobie-postgres" % DoobieVersion,
-    "ch.qos.logback" % "logback-classic" % LogbackVersion
+    "ch.qos.logback" % "logback-classic" % LogbackVersion,
+    "io.scalaland" %% "chimney" % "0.3.2"
 //      "org.scalatest"   %% "scalatest"           % ScalaTestVersion  % Test,
 //      "org.scalacheck"  %% "scalacheck"          % ScalaCheckVersion % Test,
 //      "org.tpolecat"    %% "doobie-scalatest"    % DoobieVersion % Test

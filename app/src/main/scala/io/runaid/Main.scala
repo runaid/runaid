@@ -8,6 +8,7 @@ import cats.effect.IOApp
 import cats.effect.Resource
 import cats.effect.Timer
 import fs2.concurrent.Topic
+import io.runaid.activity.ActivityRoutes
 import io.runaid.config.AppConfig
 import io.runaid.eventstream.EventStreamEvent
 import io.runaid.eventstream.EventStreamRoutes
@@ -34,7 +35,8 @@ class Application[F[_]: ConcurrentEffect: Timer: ContextShift](config: AppConfig
   val server: Resource[F, Server[F]] = Topic[F, EventStreamEvent](EventStreamEvent.Dummy).liftResource.flatMap { eventTopic =>
     makeServer(
       Router(
-        "/events" -> EventStreamRoutes.make[F](eventTopic.subscribe(100).tail, _.through(eventTopic.publish)).routes
+        "/events" -> EventStreamRoutes.make[F](eventTopic.subscribe(100).tail).routes,
+        "/activity" -> ActivityRoutes.make[F](eventTopic.publish).routes
       )
     )
   }
