@@ -1,5 +1,7 @@
 # runaid
 
+WIP useful app for running.
+
 ## Run app
 
 `sbt app/run` / `bloop run app`
