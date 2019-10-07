@@ -37,7 +37,7 @@ val app = project.settings(
 val tests = project
   .settings(
     libraryDependencies ++= Seq(
-      "com.kubukoz" %% "flawless-core" % "0.1.0-M2-2"
+      "com.kubukoz" %% "flawless-core" % "0.1.0-M3"
     )
   )
   .dependsOn(app)
