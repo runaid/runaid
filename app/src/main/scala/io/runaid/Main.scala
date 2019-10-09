@@ -19,7 +19,7 @@ import org.http4s.server.Router
 import org.http4s.server.Server
 import org.http4s.server.blaze.BlazeServerBuilder
 import pureconfig.ConfigSource
-
+import cats.implicits._
 import scala.concurrent.ExecutionContext
 
 class Application[F[_]: ConcurrentEffect: Timer: ContextShift](config: AppConfig)(implicit executionContext: ExecutionContext) {
@@ -33,12 +33,16 @@ class Application[F[_]: ConcurrentEffect: Timer: ContextShift](config: AppConfig
       .resource
 
   val server: Resource[F, Server[F]] = Topic[F, EventStreamEvent](EventStreamEvent.Dummy).liftResource.flatMap { eventTopic =>
-    makeServer(
-      Router(
-        "/events" -> EventStreamRoutes.make[F](eventTopic.subscribe(100).tail).routes,
-        "/activity" -> ActivityRoutes.make[F](eventTopic.publish).routes
-      )
-    )
+    Resource.suspend {
+      EventStreamRoutes.make[F](eventTopic.subscribe(100).tail).map { es =>
+        makeServer(
+          Router(
+            "/events" -> es.routes,
+            "/activity" -> ActivityRoutes.make[F](eventTopic.publish).routes
+          )
+        )
+      }
+    }
   }
 }
 

@@ -1,6 +1,5 @@
 package io.runaid.eventstream
 
-import cats.effect.Sync
 import fs2.Pipe
 import fs2.Stream
 import io.circe.Encoder
@@ -10,10 +9,14 @@ import org.http4s.HttpRoutes
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
 import cats.implicits._
+import fs2.concurrent.SignallingRef
+import cats.effect.Concurrent
 
 object EventStreamRoutes {
 
-  def make[F[_]: Sync](eventSource: Stream[F, EventStreamEvent]): HttpRouter[F] =
+  def make[F[_]: Concurrent](eventSource: Stream[F, EventStreamEvent]): F[HttpRouter[F]] = SignallingRef[F, Int](0).map { connectedCount =>
+    val _ = eventSource
+
     HttpRouter.make[F] { dsl =>
       import dsl._
 
@@ -21,28 +24,15 @@ object EventStreamRoutes {
         WebSocketFrame.Text(event.asJson.noSpaces)
       }
 
-      val activitiesOnly: Pipe[F, EventStreamEvent, ActivityLog] = _.collect {
-        case EventStreamEvent.ActivityLogged(log) => log
-      }
-
-      val distance: (ActivityLog, ActivityLog) => Long = (a, b) => {
-        def dist(a: Long, b: Long): Double = Math.sqrt(((a * a) + (b * b)).toDouble)
-
-        dist(
-          b.long - a.long,
-          b.lat - a.lat
-        ).round
-      }
-
-      val foldAsDistance: Pipe[F, ActivityLog, Long] =
-        _.zipWithPrevious.scanMap(_.leftSequence.map(distance.tupled)).unNone
+      val counter = Stream.bracket(connectedCount.update(_ + 1))(_ => connectedCount.update(_ - 1))
 
       HttpRoutes.of {
         case GET -> Root / "read" =>
           WebSocketBuilder[F].build(
-            send = eventSource.through(activitiesOnly).through(foldAsDistance).through(toMessage),
+            send = counter *> connectedCount.discrete.through(toMessage),
             receive = _.drain
           )
       }
     }
+  }
 }
